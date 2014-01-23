@@ -95,7 +95,7 @@ Ext.define('ElyGui.util.SharedConnector',
      * @type {number}
      */
     sync: function () {
-        localStorage.setItem(this.SYNCLEAD, +new Date());
+        localStorage.setItem(this.SYNCLEAD, Date.now());
     },
 
     /**
@@ -157,7 +157,7 @@ Ext.define('ElyGui.util.SharedConnector',
         setInterval(function () {
             if (me.leading >= 1) { me.sync(); }
             if (!me.leading // we're not the leader
-            &&  (new Date() - me.LS_SYNC_T*2 > me.synclead)) { // and current one is dead
+            &&  (Date.now() - me.LS_SYNC_T*2 > me.synclead)) { // and current one is dead
                 me.becomeMaster(true);
             }
         }, this.LS_SYNC_T);
@@ -181,6 +181,7 @@ Ext.define('ElyGui.util.SharedConnector',
             switch (m[1]) {
             case '-': // sometab says, it's going out
                 delete me.slaves[n];
+                me.leading--;
                 break;
             case '+':
                 // current leader point sometab a new leader
@@ -229,6 +230,7 @@ Ext.define('ElyGui.util.SharedConnector',
         var me = this;
         window.addEventListener('storage', function (event) {
             if (event.key != me.SYNCQUEUE) { return; }
+            if (me.leading) { return; } // IE fires event even for tab initiated it
             me.onMessage(event.newValue);
         }, false);
         this.initSyncLead();

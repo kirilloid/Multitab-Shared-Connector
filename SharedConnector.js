@@ -1,24 +1,11 @@
 /**
  * @class SharedConnector
- * allows sharing of any kind of connection between several tabs
- * in order to reduce server load per each client
- * could be used not only for networking, but for any kind of object
- * providing discrete string messages not very often
+ * allows sharing of any kind of resource-hungry event emitter (e.g. long polling) between several tabs
  * interface of such object should consist of 2 functions:
  * @param {function(function(string))} start main [net]working function
  * it gets callback as input and should call it with
  * string whenever new message is received
  * @param {function(string)} onMessage actual callback for message processing
- *
- * real path of execution is
- * # getting data (message) from external source
- * # code in start executes received callback with that message
- * # SharedConnector multiplexes message and broadcast to other tabs
- * # all tabs receive that broadcast and call onMessage
- *
- * we're using localstorage for sharing one queue among all tabs/windows and distributing events
- * if one tab writes something to storage, all others tabs from same origin get 'storage' event fired on their windows
- * the limitation of using localStorage is that message could not be very large (several MB)
  *
  */
 Ext.define('ElyGui.util.SharedConnector',
@@ -108,7 +95,7 @@ Ext.define('ElyGui.util.SharedConnector',
     },
 
     /**
-     * process all "beaurucreacy" related to becoming master
+     * process all "bureaucracy" related to becoming master
      * @param {string} others comma separated values
      */
     becomeMaster: function (others) {
@@ -187,13 +174,13 @@ Ext.define('ElyGui.util.SharedConnector',
                 // current leader point sometab a new leader
                 // 'n' contains comma-separated full list of other ids
                 if (!me.leading && me.id == parseInt(n, 10)) { me.becomeMaster(n); }
-                // leader said: "decide by yourselvesm who we'll be the king"
+                // leader said: "decide by yourselves, who we'll be the king"
                 if (!me.leading && n == '') {
                     window.addEventListener('storage', listenEcho, false);
                     tryTakeLeadership = setTimeout(function () {
                         tryTakeLeadership = setTimeout(me.becomeMaster.bind(me), 1000);
                     }, this.id % 1000);
-                    // listen to asnwer
+                    // listen to answer
                 }
                 break;
             case '!': // somebody already use this name
@@ -210,7 +197,7 @@ Ext.define('ElyGui.util.SharedConnector',
                 }
                 if (me.leading) {
                     me.sync(); // remind we're the leader
-                    me.slaves[n] = me.leading++;// and write down we have another slave
+                    me.slaves[n] = me.leading++; // and write down we have another slave
                 }
             }
         }, false);
@@ -245,18 +232,18 @@ Ext.define('ElyGui.util.SharedConnector',
         var me = this;
         this.leading = 0;
         var fullFillLeadershipRequest;
-        // listen to reponse
+        // listen to response
         function listenEcho (event) {
             if (event.key == me.SYNCLEAD) { // there's a master already
                 clearTimeout(fullFillLeadershipRequest);
                 window.removeEventListener('storage', listenEcho, false);
             }
         }
-        // name ourself
+        // name ourselves
         this.name(this.id = this.generateName());
         // if nobody answer within one second, we are the only leader
         fullFillLeadershipRequest = setTimeout(this.becomeMaster.bind(this), 1000);
-        // listen to asnwer
+        // listen to answer
         window.addEventListener('storage', listenEcho, false);
     }
 
